@@ -58,6 +58,42 @@ class Uruguay(Wikipedia):
         r = requests.get("https://en.wikipedia.org/wiki/History_of_Uruguay")
         if r.status_code == 200:
             soup = self.make_html(r.text)
-            return "\n".join(
-                [p.text for p in soup.find_all("p")]
-            )
+            return "<html><body>" + "<br>".join(
+                [str(p) for p in soup.find_all("p")]
+            ) + "</body></html>"
+    
+    @property
+    def administrative_divisions(self) -> pd.DataFrame:
+        print("From census 2011")
+        divisions_tab =  self.soup.find_all("table")[1]
+        headers = [
+            re.sub(r"(\\n|\[\d+\])", "", th.text).strip() 
+            for th in divisions_tab.find_all("th")
+        ]
+        rows = [
+            re.sub(r"(\\n|\[\d+\])", "", td.text).strip() 
+            for td in divisions_tab.find("tbody").find_all("td")]
+
+        mapper = []
+        for i in range(0, len(rows)+1, len(headers)-1):
+            row  = rows[i:(i+len(headers))-1]
+            if any(row):
+                mapper.append(dict(zip(headers, row)))
+        
+        df = pd.DataFrame(mapper)
+        df = df.rename(
+            columns={
+                "Area": "area_km2",
+                "Population (2011 census)": "area_mi2",
+                "km2": "population",
+                "Department": "department",
+                "Capital": "capital"
+            }
+        )
+        df["area_km2"] = df["area_km2"].str.replace(",", "").apply(int)
+        df["area_mi2"] = df["area_mi2"].str.replace(",", "").apply(int)
+        df["population"] = df["population"].str.replace(",", "").apply(int)
+        df = df[:19].sort_values(by="population", ascending=False).reset_index(drop=True)
+        
+        return df
+

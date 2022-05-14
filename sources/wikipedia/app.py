@@ -34,6 +34,6 @@ if __name__ == "__main__":
     wch.import_crawler()
     crawler = wch.set_crawler()
 
-    print(crawler.history)
+    print(crawler.administrative_divisions)
     
     
