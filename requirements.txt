@@ -1,3 +1,4 @@
 pandas
 lxml
 beautifulsoup4
+rapidfuzz

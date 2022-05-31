@@ -1,22 +1,34 @@
 import argparse
 import importlib.util
 
+import pandas as pd 
 
-class WikipediaCountryHandler:
+
+class ETLWikipediaHandler:
     def __init__(self, country: str) -> None:
-        self.country = country
-        self.crawler = None
-
-    def import_crawler(self):
-        spec = importlib.util.spec_from_file_location("parser", f"crawlers/{self.country.lower()}.py")
+        self.country = country      
+    
+    def extract(self) -> tuple:
+        spec = importlib.util.spec_from_file_location("parser", f"extractors/{self.country.lower()}.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        self.crawler = eval(f"module.{self.country}")
-    
-    def set_crawler(self) -> object:
+        crawler = module.fetch_data
         print(f"Starting crawler (Wikipedia): {self.country}")
 
-        return self.crawler()
+        return crawler(self.country, "all")
+    
+    def transform(
+        self, 
+        summary=None, 
+        history=None, 
+        divisions=None, 
+        municipalities=None
+        ) -> pd.DataFrame:
+        
+        return pd.DataFrame()
+    
+    def load(self) -> None:
+        pass
 
 
 
@@ -30,10 +42,14 @@ if __name__ == "__main__":
     # output: str = args.output
     
     country = country.lower().capitalize()
-    wch = WikipediaCountryHandler(country)
-    wch.import_crawler()
-    crawler = wch.set_crawler()
+    etl = ETLWikipediaHandler(country)
 
-    print(crawler.administrative_divisions)
-    
+    (
+        summary,
+        history,
+        divisions, 
+        municipalities
+    ) = etl.extract()
+    res = etl.transform(summary, history, divisions, municipalities)
+
     
