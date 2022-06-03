@@ -23,9 +23,16 @@ class ETLWikipediaHandler:
         history=None, 
         divisions=None, 
         municipalities=None
-        ) -> pd.DataFrame:
-        
-        return pd.DataFrame()
+    ) -> pd.DataFrame:
+        spec = importlib.util.spec_from_file_location("parser", f"transformers/{self.country.lower()}.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        transformer = module.transform
+
+        # NOTE: WIP - add other transformations
+        df = transformer(divisions, municipalities)
+
+        return df
     
     def load(self) -> None:
         pass
