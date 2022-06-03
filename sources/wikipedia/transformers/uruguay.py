@@ -23,6 +23,34 @@ def create_municipality_code(row: pd.Series) -> str:
     return f'{row["country_code"]}_{province_code}_{row["municipality_id"]:02}'
 
 
+def _sanitize_municipality_area(df: pd.DataFrame) -> None:
+    df["municipality_area_km2"] = (
+        df["municipality_area_km2"]
+        .replace(r"\s+km.*", " ", regex=True)
+        .replace(r"\(sin\sdatos\)", pd.NA, regex=True)
+        .replace(r"\,", ".", regex=True)
+        .str.split()
+    )
+    df.loc[df["municipality_area_km2"].notna(), "municipality_area_km2"] = (
+        df
+        .loc[df["municipality_area_km2"].notna(), "municipality_area_km2"]
+        .apply(lambda m: m[0])
+        .apply(float)
+    )
+
+
+def _sanitize_municipality_inhabitants(df: pd.DataFrame) -> None:
+    pass 
+
+
+def _sanitize_province_area(df: pd.DataFrame) -> None:
+    pass 
+
+
+def _sanitize_province_inhabitants(df: pd.DataFrame) -> None:
+    pass 
+
+
 def transform(divisions: pd.DataFrame, municipalities: pd.DataFrame) -> pd.DataFrame:
     dfd = divisions.copy()
     dfm = municipalities.copy()
@@ -56,7 +84,10 @@ def transform(divisions: pd.DataFrame, municipalities: pd.DataFrame) -> pd.DataF
         )
     )
 
-    #NOTE: test this out
+    _sanitize_municipality_area(df)
+    _sanitize_municipality_inhabitants(df)
+    _sanitize_province_area(df)
+    _sanitize_province_inhabitants(df)
 
     return df
 
