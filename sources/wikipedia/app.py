@@ -9,7 +9,9 @@ class ETLWikipediaHandler:
         self.country = country      
     
     def extract(self) -> tuple:
-        spec = importlib.util.spec_from_file_location("parser", f"extractors/{self.country.lower()}.py")
+        spec = importlib.util.spec_from_file_location(
+            "parser", f"extractors/{self.country.lower()}.py"
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         crawler = module.fetch_data
@@ -17,23 +19,37 @@ class ETLWikipediaHandler:
 
         return crawler(self.country, "all")
     
-    def transform(
+    def transform_location(
         self, 
-        summary=None, 
-        history=None, 
-        divisions=None, 
-        municipalities=None
+        divisions: pd.DataFrame, 
+        municipalities: pd.DataFrame,
     ) -> pd.DataFrame:
-        spec = importlib.util.spec_from_file_location("parser", f"transformers/{self.country.lower()}.py")
+        spec = importlib.util.spec_from_file_location(
+            "parser", f"transformers/locations/{self.country.lower()}.py"
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        transformer = module.transform
+        transform_location = module.transform_location
 
-        # NOTE: WIP - add other transformations
-        df = transformer(divisions, municipalities)
+        country_df, province_df, municipality_df = transform_location(
+            divisions, municipalities
+        )
 
-        return df
+        return country_df, province_df, municipality_df
     
+    def transform(
+        self,
+        summary,
+        history,
+        divisions, 
+        municipalities
+    ):
+        country_df, province_df, municipality_df = self.transform_location(
+            divisions=divisions, municipalities=municipalities
+        )
+
+        return 200
+
     def load(self) -> None:
         pass
 
