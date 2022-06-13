@@ -144,7 +144,7 @@ def create_municipality_table(df: pd.DataFrame) -> pd.DataFrame:
     return municipality_df
 
 
-def create_tables(df: pd.DataFrame) -> tuple:
+def transform_location(df: pd.DataFrame) -> tuple:
     country_df = create_country_table(df)
     province_df = create_province_table(df)
     municipality_df = create_municipality_table(df)
@@ -152,8 +152,7 @@ def create_tables(df: pd.DataFrame) -> tuple:
     return country_df, province_df, municipality_df
 
 
-
-def transform_location(
+def create_tables(
     divisions: pd.DataFrame, 
     municipalities: pd.DataFrame, 
     normalize: bool=True
@@ -201,6 +200,6 @@ def transform_location(
     df["province_id"] = df.apply(lambda row: generate_id(row, "province"), axis=1)
     df["municipality_id"] = df.apply(lambda row: generate_id(row, "municipality"), axis=1)
 
-    return create_tables(df)
+    return transform_location(df)
 
 

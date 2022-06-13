@@ -139,8 +139,8 @@ def extract_summary(soup: BeautifulSoup) -> dict:
         __clean_string(k): __clean_string(v)
         for k,v in data.items()
     }
-
-    return _group_data(data)
+    _group_data(data)
+    return data
 
 
 def fetch_data(country: str, target: Optional[str] = "all"):
