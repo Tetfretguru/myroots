@@ -11,8 +11,11 @@ class MyRoots:
         self.db_file = r"myroots.db"
 
         conn = None
-        conn = self.create_connection()
-
+        conn = self.create_connection(self.db_file)
+        self.create_table(conn, "countries", COUNTRIES_TABLE_SQL)
+        self.create_table(conn, "provinces", PROVINCES_TABLE_SQL)
+        self.create_table(conn, "subdivisions", SUBDIVISIONS_TABLE_SQL)
+        conn.close()
     
     @staticmethod
     def create_connection(db_file):
@@ -40,3 +43,6 @@ class MyRoots:
             raise e
 
 
+if __name__ == "__main__":
+    stack = MyRoots()
+    print("Database stack has been created successfully")

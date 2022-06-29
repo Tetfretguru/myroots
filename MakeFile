@@ -1,0 +1,3 @@
+db-stack-deploy:
+	cd db; python3 -m stack
+	
