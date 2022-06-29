@@ -132,3 +132,5 @@ dmypy.json
 # SQL files
 *.db
 *.sql
+*.csv
+*.json
