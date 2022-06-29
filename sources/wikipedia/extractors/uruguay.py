@@ -2,9 +2,11 @@ import re
 from typing import Optional
 import unicodedata
 import requests
+import json
 
 import pandas as pd
 from bs4 import BeautifulSoup
+from datetime import datetime as dt
 
 
 VCARD_CLASS = "infobox ib-country vcard"
@@ -38,7 +40,7 @@ MUNICIPALITIES__TAB_HEADERS = ["municipality", "population", "surface", "mayor",
 MUNICIPALITIES__RGX = r"\\n|\&+\d+\.\&+0+|\&+\d+\.[1-9]0+|hab\.|\[\d+\]|\n"
 
 
-def extract_municipalities(url: str) -> pd.DataFrame:
+def extract_municipalities(url: str) -> list:
     r = requests.get(url)
     soup = BeautifulSoup(r.text, "html.parser")
     dfs = []
@@ -57,6 +59,8 @@ def extract_municipalities(url: str) -> pd.DataFrame:
     return (
         pd.concat(dfs).reset_index(drop=True)
         .assign(creation=lambda df: pd.to_datetime(df["creation"].str[1:len("yyyy-mm-dd"):]))
+        .assign(creation=lambda df: df.creation.apply(str))
+        .to_dict(orient='records')
     )
 
 
@@ -93,7 +97,7 @@ def extract_administrative_divisions(soup: BeautifulSoup) -> pd.DataFrame:
     df["population"] = df["population"].str.replace(",", "").apply(int)
     df = df[:19].sort_values(by="population", ascending=False).reset_index(drop=True)
     
-    return df
+    return df.to_dict(orient='records')
 
 
 def extract_history(url: str) -> str:
@@ -121,7 +125,10 @@ def _group_data(data: dict) -> None:
 def extract_summary(soup: BeautifulSoup) -> dict:
     def __clean_string(s: str) -> str:
         s = unicodedata.normalize("NFKD", s)
-        s = s.replace("\xa0", " ")
+        s = (s
+            .replace("\xa0", " ")
+            .replace("\ufeff", "")
+        )
         s = re.sub(r"\[\d+\]", "", s)
         if not re.search(r"^(\d|\w)", s):
             s = s[1::]
@@ -136,7 +143,11 @@ def extract_summary(soup: BeautifulSoup) -> dict:
         except AttributeError:
             continue
     data = {
-        __clean_string(k): __clean_string(v)
+        __clean_string(k): re.sub(
+            r"(?<=[a-z]|\])(?=\d)|(?<=\])(?=[A-Z])",
+            " ",
+            __clean_string(v)
+        )
         for k,v in data.items()
     }
     _group_data(data)
@@ -155,18 +166,28 @@ def fetch_data(country: str, target: Optional[str] = "all"):
     history = extract_history(HISTORY_URL)
     divisions = extract_administrative_divisions(soup)
     municipalities = extract_municipalities(MUNICIPALITIES_URL)
+    crawled_date = dt.today().strftime('%Y-%m-%dT%H_%M_%S')
 
     if "summary" in target.lower():
+        summary['crawled_date'] = crawled_date
         return summary
     elif "history" in target.lower():
-        return history
+        return dict(history=history, crawled_date=crawled_date)
     elif "divisions" in target.lower():
-        return divisions
+        return dict(divisions=divisions, crawled_date=crawled_date)
     elif "municipalities" in target.lower():
-        return municipalities
+        return dict(municipalities=municipalities, crawled_date=crawled_date)
     
-    return (summary, history, divisions, municipalities)
+    return dict(
+        summary=summary, 
+        history=history, 
+        divisions=divisions, 
+        municipalities=municipalities,
+        crawled_date=crawled_date
+    )
 
 
 if __name__ == '__main__':
-    print("WIP")
+    data = fetch_data('Uruguay')
+    with open(f'../../../buckets/crawl/uruguay_{data["crawled_date"]}.json', 'w') as f:
+        json.dump(data, f)
