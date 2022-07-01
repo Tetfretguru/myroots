@@ -1,12 +1,14 @@
 import re 
-from typing import Optional
 import unicodedata
 import requests
 import json
-
+import os
 import pandas as pd
+
+
 from bs4 import BeautifulSoup
 from datetime import datetime as dt
+from typing import Optional
 
 
 VCARD_CLASS = "infobox ib-country vcard"
@@ -38,6 +40,7 @@ MUNICIPALITIES_URL = "https://es.wikipedia.org/wiki/Anexo:Municipios_de_Uruguay"
 MUNICIPALITIES_CLASS = "wikitable sortable col1izq col2der col3der col4izq col5izq jquery-tablesorter"
 MUNICIPALITIES__TAB_HEADERS = ["municipality", "population", "surface", "mayor", "creation"]
 MUNICIPALITIES__RGX = r"\\n|\&+\d+\.\&+0+|\&+\d+\.[1-9]0+|hab\.|\[\d+\]|\n"
+SEPARATOR_RGX = r"(?<=[a-z]|\])(?=\d|[A-Z])"
 
 
 def extract_municipalities(url: str) -> list:
@@ -144,7 +147,7 @@ def extract_summary(soup: BeautifulSoup) -> dict:
             continue
     data = {
         __clean_string(k): re.sub(
-            r"(?<=[a-z]|\])(?=\d)|(?<=\])(?=[A-Z])",
+            SEPARATOR_RGX,
             " ",
             __clean_string(v)
         )
@@ -189,5 +192,7 @@ def fetch_data(country: str, target: Optional[str] = "all"):
 
 if __name__ == '__main__':
     data = fetch_data('Uruguay')
-    with open(f'../../../buckets/crawl/uruguay_{data["crawled_date"]}.json', 'w') as f:
+    if 'uruguay' not in os.listdir('../../../buckets/crawl'):
+        os.mkdir('../../../buckets/crawl/uruguay')
+    with open(f'../../../buckets/crawl/uruguay/uruguay_{data["crawled_date"]}.json', 'w') as f:
         json.dump(data, f)
