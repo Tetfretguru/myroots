@@ -157,42 +157,15 @@ def extract_summary(soup: BeautifulSoup) -> dict:
     return data
 
 
-def fetch_data(country: str, target: Optional[str] = "all"):
-    country = country.lower().capitalize()
-    url = "https://en.wikipedia.org/wiki/" + country
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise Exception(f"Unable to connect {url}")
-    soup = BeautifulSoup(response.text, "html.parser")
-
+def fetch_data(soup):
     summary = extract_summary(soup)
     history = extract_history(HISTORY_URL)
     divisions = extract_administrative_divisions(soup)
     municipalities = extract_municipalities(MUNICIPALITIES_URL)
-    crawled_date = dt.today().strftime('%Y-%m-%dT%H_%M_%S')
 
-    if "summary" in target.lower():
-        summary['crawled_date'] = crawled_date
-        return summary
-    elif "history" in target.lower():
-        return dict(history=history, crawled_date=crawled_date)
-    elif "divisions" in target.lower():
-        return dict(divisions=divisions, crawled_date=crawled_date)
-    elif "municipalities" in target.lower():
-        return dict(municipalities=municipalities, crawled_date=crawled_date)
-    
-    return dict(
-        summary=summary, 
-        history=history, 
-        divisions=divisions, 
-        municipalities=municipalities,
-        crawled_date=crawled_date
+    return(
+        summary,
+        history,
+        divisions,
+        municipalities,
     )
-
-
-if __name__ == '__main__':
-    data = fetch_data('Uruguay')
-    if 'uruguay' not in os.listdir('../../../buckets/crawl'):
-        os.mkdir('../../../buckets/crawl/uruguay')
-    with open(f'../../../buckets/crawl/uruguay/uruguay_{data["crawled_date"]}.json', 'w') as f:
-        json.dump(data, f)

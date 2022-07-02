@@ -10,10 +10,11 @@ from typing import Optional
 from datetime import datetime as dt
 
 
-#data almost copied from uruguay.py
 VCARD_CLASS = "infobox ib-country vcard"
 HISTORY_URL = "https://en.wikipedia.org/wiki/History_of_Argentina"
 BASE_URL = "https://en.wikipedia.org/wiki/"
+PROVINCES_URL = "https://en.wikipedia.org/wiki/Provinces_of_Argentina"
+MUNICIPALITIES_URL = 'https://en.wikipedia.org/wiki/List_of_cities_in_Argentina_by_population'
 
 SEPARATOR_RGX = r"(?<=[a-z]|\])(?=\d|[A-Z])"
 
@@ -67,9 +68,6 @@ def extract_history(url: str) -> str:
             [p.text for p in soup.find_all("p")]
         )
 
-#NEW
-PROVINCES_URL = "https://en.wikipedia.org/wiki/Provinces_of_Argentina"
-
 def extract_administrative_divisions(url:str) -> list:
     r = requests.get(url)
     if r.status_code == 200:
@@ -104,46 +102,42 @@ def extract_administrative_divisions(url:str) -> list:
                 .replace(',','')
             )).apply(int)
         return table.to_dict(orient='records')
-
-#TODO:
-def extract_municipalities():
-    return 'WIP'
-
-def fetch_data(country: str, target: Optional[str] = "all") -> dict:
-    country = country.lower().capitalize()
-    url = "https://en.wikipedia.org/wiki/" + country
-    response = requests.get(url)
-    if response.status_code != 200:
+    else:
         raise Exception(f"Unable to connect {url}")
-    soup = BeautifulSoup(response.text, "html.parser")
+
+def extract_municipalities(url:str):
+    r = requests.get(url)
+    if r.status_code == 200:
+        soup = BeautifulSoup(r.text, "html.parser")
+        table = pd.read_html(str(
+            soup
+            .find(id="Metropolitan_areas_of_Argentina_by_GDP_(PPP)")
+            .parent
+            .find_previous_sibling('table')
+        ))[0]
+        table['population'] = (table['2010 Census']
+            .fillna(table['2001 Census'])
+            .apply(lambda x: x.replace(',','').split('[')[0] if isinstance(x, str) else x)
+            .apply(int)
+        )
+        table = table.rename(columns=dict(
+            City='city',
+            Province='province'
+        ))[['city', 'province', 'population']]
+        return table.to_dict(orient='records')
+    else:
+        raise Exception(f"Unable to connect {url}")
+
+def fetch_data(soup) -> dict:
 
     summary = extract_summary(soup)
     history = extract_history(HISTORY_URL)
     divisions = extract_administrative_divisions(PROVINCES_URL)
-    municipalities = extract_municipalities()
-    crawled_date = dt.today().strftime('%Y-%m-%dT%H_%M_%S')
+    municipalities = extract_municipalities(MUNICIPALITIES_URL)
 
-    if "summary" in target.lower():
-        summary['crawled_date'] = crawled_date
-        return summary
-    elif "history" in target.lower():
-        return dict(history=history, crawled_date=crawled_date)
-    elif "divisions" in target.lower():
-        return dict(divisions=divisions, crawled_date=crawled_date)
-    elif "municipalities" in target.lower():
-        return dict(municipalities=municipalities, crawled_date=crawled_date)
-    
-    return dict(
-        summary=summary, 
-        history=history, 
-        divisions=divisions, 
-        municipalities=municipalities,
-        crawled_date=crawled_date
+    return (
+        summary,
+        history,
+        divisions,
+        municipalities
     )
-
-if __name__ == '__main__':
-    data = fetch_data('Argentina')
-    if 'argentina' not in os.listdir('../../../buckets/crawl'):
-        os.mkdir('../../../buckets/crawl/argentina')
-    with open(f'../../../buckets/crawl/argentina/argentina_{data["crawled_date"]}.json', 'w') as f:
-        json.dump(data, f)
