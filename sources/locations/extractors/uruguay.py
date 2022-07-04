@@ -1,9 +1,9 @@
 import re 
-from typing import Optional
 import unicodedata
 import requests
-
 import pandas as pd
+
+
 from bs4 import BeautifulSoup
 
 
@@ -35,10 +35,11 @@ DEPARTMENTS = [
 MUNICIPALITIES_URL = "https://es.wikipedia.org/wiki/Anexo:Municipios_de_Uruguay"
 MUNICIPALITIES_CLASS = "wikitable sortable col1izq col2der col3der col4izq col5izq jquery-tablesorter"
 MUNICIPALITIES__TAB_HEADERS = ["municipality", "population", "surface", "mayor", "creation"]
-MUNICIPALITIES__RGX = r"\\n|\&+\d+\.\&+0+|\&+\d+\.[1-9]0+|hab\.|\[\d+\]|\n"
+MUNICIPALITIES__RGX = r"\\n|\&+\d+\.\&+0+|\&+\d+\.[1-9]+0+|hab\.|\[\d+\]|\n"
+SEPARATOR_RGX = r"(?<=[a-z]|\])(?=\d|[A-Z])"
 
 
-def extract_municipalities(url: str) -> pd.DataFrame:
+def extract_municipalities(url: str) -> list:
     r = requests.get(url)
     soup = BeautifulSoup(r.text, "html.parser")
     dfs = []
@@ -57,6 +58,8 @@ def extract_municipalities(url: str) -> pd.DataFrame:
     return (
         pd.concat(dfs).reset_index(drop=True)
         .assign(creation=lambda df: pd.to_datetime(df["creation"].str[1:len("yyyy-mm-dd"):]))
+        .assign(creation=lambda df: df.creation.apply(str))
+        .to_dict(orient='records')
     )
 
 
@@ -93,7 +96,7 @@ def extract_administrative_divisions(soup: BeautifulSoup) -> pd.DataFrame:
     df["population"] = df["population"].str.replace(",", "").apply(int)
     df = df[:19].sort_values(by="population", ascending=False).reset_index(drop=True)
     
-    return df
+    return df.to_dict(orient='records')
 
 
 def extract_history(url: str) -> str:
@@ -121,7 +124,10 @@ def _group_data(data: dict) -> None:
 def extract_summary(soup: BeautifulSoup) -> dict:
     def __clean_string(s: str) -> str:
         s = unicodedata.normalize("NFKD", s)
-        s = s.replace("\xa0", " ")
+        s = (s
+            .replace("\xa0", " ")
+            .replace("\ufeff", "")
+        )
         s = re.sub(r"\[\d+\]", "", s)
         if not re.search(r"^(\d|\w)", s):
             s = s[1::]
@@ -136,37 +142,26 @@ def extract_summary(soup: BeautifulSoup) -> dict:
         except AttributeError:
             continue
     data = {
-        __clean_string(k): __clean_string(v)
+        __clean_string(k): re.sub(
+            SEPARATOR_RGX,
+            " ",
+            __clean_string(v)
+        )
         for k,v in data.items()
     }
     _group_data(data)
     return data
 
 
-def fetch_data(country: str, target: Optional[str] = "all"):
-    country = country.lower().capitalize()
-    url = "https://en.wikipedia.org/wiki/" + country
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise Exception(f"Unable to connect {url}")
-    soup = BeautifulSoup(response.text, "html.parser")
-
+def fetch_data(soup):
     summary = extract_summary(soup)
     history = extract_history(HISTORY_URL)
     divisions = extract_administrative_divisions(soup)
     municipalities = extract_municipalities(MUNICIPALITIES_URL)
 
-    if "summary" in target.lower():
-        return summary
-    elif "history" in target.lower():
-        return history
-    elif "divisions" in target.lower():
-        return divisions
-    elif "municipalities" in target.lower():
-        return municipalities
-    
-    return (summary, history, divisions, municipalities)
-
-
-if __name__ == '__main__':
-    print("WIP")
+    return(
+        summary,
+        history,
+        divisions,
+        municipalities,
+    )
