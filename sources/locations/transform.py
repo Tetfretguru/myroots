@@ -1,6 +1,6 @@
 import argparse
 import importlib.util
-import requests
+import pandas as pd
 import os
 import json
 
@@ -8,10 +8,13 @@ from bs4 import BeautifulSoup
 from datetime import datetime as dt
 from typing import Optional
 
+
+class TransformerNotImplemented(Exception): pass
+
 # Wikipedia
 try:
     #uruguay
-    from wikipedia.transformers.uruguay.country_main import create_tables as uy_transform
+    from locations.transformers.uruguay.country_main import create_tables as uy_transform
 except ImportError:
     spec = importlib.util.spec_from_file_location(
         "transformer", f"transformers/uruguay/country_main.py"
@@ -27,8 +30,10 @@ matcher = {
     'Uruguay':uy_transform,
 }
 
-def parse(country:str):
+def parse(country:str) -> None:
     country = country.lower()
+    if country.capitalize() not in matcher.keys():
+        raise TransformerNotImplemented(f'There\'s no transformer for country "{country.capitalize()}"')
     files_by_stamp = {}
     for file_ in os.listdir(f'../../buckets/source_locations_raw/{country}'):
         ts = parse_ts(file_.split('_', 1)[-1].replace('.json',''))
@@ -36,7 +41,14 @@ def parse(country:str):
     json_ = files_by_stamp[max(list(files_by_stamp.keys()))]
     with open(f'../../buckets/source_locations_raw/{country}/{json_}') as f:
         data = json.load(f)
-    print(data)
+    transform = matcher[country.capitalize()]
+    frames_dict = transform(
+        pd.DataFrame.from_records(data.get('divisions')),
+        pd.DataFrame.from_records(data.get('municipalities'))
+    )
+    os.makedirs(f'../../buckets/source_locations_parsed/{country}', exist_ok=True)
+    for k, v in frames_dict.items():
+        v.to_csv(f'../../buckets/source_locations_parsed/{country}/{k}.csv', index=False)
 
 #TODO: parse json
 

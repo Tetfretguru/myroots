@@ -8,14 +8,17 @@ from bs4 import BeautifulSoup
 from datetime import datetime as dt
 from typing import Optional
 
-# Wikipedia
+
+class InvalidCountry(Exception): pass
+
+# locations
 try:
     # uruguay
-    from wikipedia.extractors.uruguay import fetch_data as uy_extract
+    from locations.extractors.uruguay import fetch_data as uy_extract
     #argentina
-    from wikipedia.extractors.argentina import fetch_data as ar_extract
+    from locations.extractors.argentina import fetch_data as ar_extract
     #chile
-    from wikipedia.extractors.chile import fetch_data as ch_extract
+    #from locations.extractors.chile import fetch_data as ch_extract
     
 except ImportError:
     #uruguay
@@ -33,22 +36,24 @@ except ImportError:
     spec.loader.exec_module(module)
     ar_extract = module.fetch_data
     #chile
-    spec = importlib.util.spec_from_file_location(
-        "extractor", f"extractors/chile.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    ch_extract = module.fetch_data
+    # spec = importlib.util.spec_from_file_location(
+    #     "extractor", f"extractors/chile.py"
+    # )
+    # module = importlib.util.module_from_spec(spec)
+    # spec.loader.exec_module(module)
+    # ch_extract = module.fetch_data
 
 
 matcher = {
     'Uruguay':uy_extract,
     'Argentina':ar_extract,
-    'Chile':ch_extract
+    #'Chile':ch_extract
 }
 
 def run(country: str, target: Optional[str] = "all"):
     country = country.lower().capitalize()
+    if country not in matcher.keys():
+        raise InvalidCountry(f'There is no extractor for country "{country}"')
     extractor = matcher.get(country)
     url = "https://en.wikipedia.org/wiki/" + country
     response = requests.get(url)
@@ -86,8 +91,7 @@ if __name__ == "__main__":
     
     country = country.lower().capitalize()
     data = run(country=country)
-    if country.lower() not in os.listdir('../../buckets/source_locations_raw'):
-        os.mkdir(f'../../buckets/source_locations_raw/{country.lower()}')
+    os.makedirs(f'../../buckets/source_locations_raw/{country.lower()}', exist_ok=True)
     with open(f'../../buckets/source_locations_raw/{country.lower()}/{country.lower()}_{data["crawled_date"]}.json', 'w') as f:
         json.dump(data, f)
 
