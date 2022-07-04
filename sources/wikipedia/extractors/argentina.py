@@ -2,12 +2,9 @@ import unicodedata
 import re
 import requests
 import pandas as pd
-import json
-import os
+
 
 from bs4 import BeautifulSoup
-from typing import Optional
-from datetime import datetime as dt
 
 
 VCARD_CLASS = "infobox ib-country vcard"
