@@ -23,7 +23,7 @@ def create_insert_query(df: pd.DataFrame, table_name: str) -> str:
     
     return query
 
-    
+
 class MyRoots:
     def __init__(self, queries: List[str]=[]) -> None:
         self.db_file = r"myroots.db"
@@ -59,20 +59,6 @@ class MyRoots:
             c.execute(query)
         except sqlite3.Error as e:
             print(f"Error while executing query: {repr(query)}")
-            raise e
-    
-    @staticmethod
-    def insert_into_table(conn: sqlite3.Connection, table_name: str, query: str) -> None:
-        """
-        Insert a set of data
-        :param conn: Connection object
-        :table_name: Target table
-        :data: Data source
-        """
-        try:
-            pass
-        except sqlite3.Error as e:
-            print(f"Error while inserting data in table {repr(table_name)}")
             raise e
 
 
