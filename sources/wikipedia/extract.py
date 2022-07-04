@@ -14,6 +14,8 @@ try:
     from wikipedia.extractors.uruguay import fetch_data as uy_extract
     #argentina
     from wikipedia.extractors.argentina import fetch_data as ar_extract
+    #chile
+    from wikipedia.extractors.chile import fetch_data as ch_extract
     
 except ImportError:
     #uruguay
@@ -30,11 +32,19 @@ except ImportError:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     ar_extract = module.fetch_data
+    #chile
+    spec = importlib.util.spec_from_file_location(
+        "extractor", f"extractors/chile.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    ch_extract = module.fetch_data
 
 
 matcher = {
     'Uruguay':uy_extract,
-    'Argentina':ar_extract
+    'Argentina':ar_extract,
+    'Chile':ch_extract
 }
 
 def run(country: str, target: Optional[str] = "all"):
@@ -76,9 +86,9 @@ if __name__ == "__main__":
     
     country = country.lower().capitalize()
     data = run(country=country)
-    if country.lower() not in os.listdir('../../buckets/crawl'):
-        os.mkdir(f'../../buckets/crawl/{country.lower()}')
-    with open(f'../../buckets/crawl/{country.lower()}/{country.lower()}_{data["crawled_date"]}.json', 'w') as f:
+    if country.lower() not in os.listdir('../../buckets/source_locations_raw'):
+        os.mkdir(f'../../buckets/source_locations_raw/{country.lower()}')
+    with open(f'../../buckets/source_locations_raw/{country.lower()}/{country.lower()}_{data["crawled_date"]}.json', 'w') as f:
         json.dump(data, f)
 
     

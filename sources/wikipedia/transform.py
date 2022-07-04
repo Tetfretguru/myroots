@@ -30,11 +30,11 @@ matcher = {
 def parse(country:str):
     country = country.lower()
     files_by_stamp = {}
-    for file_ in os.listdir(f'../../buckets/crawl/{country}'):
+    for file_ in os.listdir(f'../../buckets/source_locations_raw/{country}'):
         ts = parse_ts(file_.split('_', 1)[-1].replace('.json',''))
         files_by_stamp[ts] = file_
     json_ = files_by_stamp[max(list(files_by_stamp.keys()))]
-    with open(f'../../buckets/crawl/{country}/{json_}') as f:
+    with open(f'../../buckets/source_locations_raw/{country}/{json_}') as f:
         data = json.load(f)
     print(data)
 
