@@ -2,12 +2,9 @@ import unicodedata
 import re
 import requests
 import pandas as pd
-import json
-import os
+
 
 from bs4 import BeautifulSoup
-from typing import Optional
-from datetime import datetime as dt
 
 
 VCARD_CLASS = "infobox ib-country vcard"
@@ -128,7 +125,7 @@ def extract_municipalities(url:str):
     else:
         raise Exception(f"Unable to connect {url}")
 
-def fetch_data(soup) -> dict:
+def fetch_data(soup:BeautifulSoup) -> dict:
 
     summary = extract_summary(soup)
     history = extract_history(HISTORY_URL)

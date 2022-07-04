@@ -149,7 +149,11 @@ def transform_location(df: pd.DataFrame) -> tuple:
     province_df = create_province_table(df)
     municipality_df = create_municipality_table(df)
 
-    return country_df, province_df, municipality_df
+    return dict(
+        country=country_df,
+        province=province_df,
+        municipality=municipality_df
+    )
 
 
 def create_tables(
