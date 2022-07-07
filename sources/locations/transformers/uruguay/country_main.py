@@ -173,9 +173,9 @@ def create_tables(
     _sanitize_municipality_inhabitants(df)
 
     df["country_id"] = generate_id_str('uruguay')
-    df["province_id"] = df.apply(lambda row: generate_id_str(f'{row["country"]}_{row["province"]}'), axis=1)
+    df["province_id"] = df.apply(lambda row: generate_id_str(f'uruguay_{row["province"]}'), axis=1)
     df["municipality_id"] = df.apply(
-        lambda row: generate_id_str(f'{row["country"]}_{row["province"]}_{row["municipality"]}'), 
+        lambda row: generate_id_str(f'uruguay_{row["province"]}_{row["municipality"]}'), 
         axis=1
     )
     df.loc[df["municipality_id"].duplicated(), "municipality_id"] = (

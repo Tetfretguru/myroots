@@ -58,11 +58,10 @@ def create_province_table(data:dict) -> pd.DataFrame:
             area_km2='province_area'
         )
     )
-    print(divisions_df.columns)
     divisions_df['province_code'] = divisions_df['province_name'].apply(lambda x: re
         .sub(VOWEL_RGX, '', f'{x}XX')
         .upper()[:4])
-    divisions_df['province_id'] = divisions_df['province_name'].apply(generate_id_str)
+    divisions_df['province_id'] = divisions_df['province_name'].apply(lambda x: generate_id_str(f'argentina_{x}'))
     divisions_df['country_id'] = generate_id_str('argentina')
     return divisions_df[PROVINCES_COLS+(['country_id'] if normal else [])]
 
@@ -81,7 +80,13 @@ def create_municipality_table(data:dict, province_ids:dict):
         lambda x: fuzzy_match(x, province_ids)
     )
     municipalities_df['province_id'] = municipalities_df['province_id'].fillna(province_ids['Autonomous City of Buenos Aires'])
-    municipalities_df['municipality_id'] = municipalities_df.municipality_name.apply(generate_id_str)
+    #municipalities_df['municipality_id'] = municipalities_df.municipality_name.apply(generate_id_str)
+    municipalities_df['municipality_id'] = municipalities_df.apply(lambda series: generate_id_str(
+        f'argentina_{series.province}_{series.municipality_name}'
+    ), axis=1)
+    municipalities_df.loc[municipalities_df.municipality_id.duplicated(), 'municipality_id'] = (
+        municipalities_df.municipality_id+municipalities_df.groupby('municipality_id').cumcount()
+    )
     municipalities_df['municipality_creation_date'] = pd.NA
     municipalities_df['municipality_area'] = pd.NA
     return municipalities_df[MUNICIPALITIES_COLS+(["province_id", "country_id"] if normal else [])]
