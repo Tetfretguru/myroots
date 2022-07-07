@@ -1,10 +1,25 @@
 import re 
 import hashlib
-
 import pandas as pd
-from rapidfuzz.fuzz import token_sort_ratio as tsr
+import os
+import sys
+import inspect
 
-VOWEL_RGX = r"A|a|E|e|I|i|O|o|U|u|\s+"
+#TODO: figure out relative imports
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+
+from rapidfuzz.fuzz import token_sort_ratio as tsr
+from helper import (
+    VOWEL_RGX,
+    COUNTRY_COLS,
+    PROVINCES_COLS,
+    MUNICIPALITIES_COLS,
+    generate_id_str,
+    create_municipality_code
+)
+
 KM2_RGX = r"\s+km.*"
 NO_DATA_RGX = r"\(sin\sdatos\)"
 UY_DATA = {
@@ -15,41 +30,6 @@ UY_DATA = {
     "country_language": "Spanish",
     "country_area": pd.NA
 }
-COUNTRY_COLS = [
-    "country_id",
-    "country_name",
-    "country_capital",
-    "country_code",
-    "country_provinces",
-    "country_municipalities",
-    "country_language",
-    "country_population"
-]
-PROVINCES_COLS = [
-    "province_id",
-    "province_name",
-    "province_capital",
-    "province_code",
-    "province_population",
-    "province_area"
-]
-MUNICIPALITIES_COLS = [
-    "municipality_id",
-    "municipality_name",
-    "municipality_code",
-    "municipality_creation_date",
-    "municipality_population",
-    "municipality_area"
-]
-
-
-def generate_id(row, col):
-    s = str(row[col]).lower().strip()
-    return int(hashlib.sha1(s.encode("utf-8")).hexdigest(), 16) % (10 ** 8)
-
-
-def generate_country_id(c: str="uruguay"):
-    return int(hashlib.sha1(c.encode("utf-8")).hexdigest(), 16) % (10 ** 8)
 
 
 def tokenize(row, pairs):
@@ -58,15 +38,6 @@ def tokenize(row, pairs):
         if token > 85:
             return p
     return pd.NA
-
-
-def create_municipality_code(row: pd.Series) -> str:
-    province_code = (
-        re.sub(VOWEL_RGX, "", row["province"])
-        .upper()[:4]
-        .replace("Í", "I")
-    )
-    return f'{row["country_code"]}_{province_code}_{row["municipality_code"]:02}'
 
 
 def _sanitize_municipality_area(df: pd.DataFrame) -> None:
@@ -157,12 +128,13 @@ def transform_location(df: pd.DataFrame) -> tuple:
 
 
 def create_tables(
-    divisions: pd.DataFrame, 
-    municipalities: pd.DataFrame, 
+    data:dict, 
     normalize: bool=True
 ) -> pd.DataFrame:
     global normal
     normal = normalize
+    divisions = pd.DataFrame.from_records(data.get('divisions'))
+    municipalities = pd.DataFrame.from_records(data.get('municipalities'))
 
     dfd = divisions.copy()
     dfm = municipalities.copy()
@@ -200,9 +172,15 @@ def create_tables(
     _sanitize_municipality_area(df)
     _sanitize_municipality_inhabitants(df)
 
-    df["country_id"] = generate_country_id()
-    df["province_id"] = df.apply(lambda row: generate_id(row, "province"), axis=1)
-    df["municipality_id"] = df.apply(lambda row: generate_id(row, "municipality"), axis=1)
+    df["country_id"] = generate_id_str('uruguay')
+    df["province_id"] = df.apply(lambda row: generate_id_str(f'uruguay_{row["province"]}'), axis=1)
+    df["municipality_id"] = df.apply(
+        lambda row: generate_id_str(f'uruguay_{row["province"]}_{row["municipality"]}'), 
+        axis=1
+    )
+    df.loc[df["municipality_id"].duplicated(), "municipality_id"] = (
+        df["municipality_id"] + df.groupby("municipality_id").cumcount()
+    )
 
     return transform_location(df)
 
