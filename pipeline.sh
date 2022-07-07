@@ -31,6 +31,18 @@ while [ $# -gt 0 ]; do
             cd sources/locations; read c; python3 transform.py --country $c
             echo "done"
             ;;
+        --load_location)
+            echo "locations loader initialized, please input country: "
+            cd sources/locations; read c; python3 load.py --country $c
+            echo "done"
+            ;;
+        --etl_location)
+            echo "locations loader initialized, please input country: "
+            cd sources; read c; bash extract_transform.sh $c false false; cd ../
+            cd sources/locations; read c; python3 transform.py --country $c; cd ../../
+            cd sources/locations; read c; python3 load.py --country $c; cd ../../
+            echo "done"
+            ;;
         --help|-help|-h|help)
             echo """Script Syntax: 'bash pipeline.sh --{PARAM_1} --{PARAM_2} (...)'. Possible params are:
                 --db-deploy-stack: deploys the db stack
@@ -38,6 +50,7 @@ while [ $# -gt 0 ]; do
                 --extract_transform_location: Same as before but also parses the desired location if parser is implemented
                 --extract_transform_all: Same as before but will also transform coordinates if available.
                 --transform_location: Only parses the desired location, country promp will show for the user
+                --load_location: loads data from buckets CSV resulting from transform step, country promp will show for the user
                 --help|-help|-h|help: Displays this message
             """
             exit
