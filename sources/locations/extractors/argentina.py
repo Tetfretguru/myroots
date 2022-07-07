@@ -98,6 +98,11 @@ def extract_administrative_divisions(url:str) -> list:
                 .split('\xa0')[0]
                 .replace(',','')
             )).apply(int)
+        table['population'] = table['population'].apply(lambda x: (
+            x
+            .replace('a','')
+            .replace(',','')
+        )).apply(int)
         return table.to_dict(orient='records')
     else:
         raise Exception(f"Unable to connect {url}")

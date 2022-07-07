@@ -15,19 +15,31 @@ class TransformerNotImplemented(Exception): pass
 try:
     #uruguay
     from locations.transformers.uruguay.country_main import create_tables as uy_transform
+    #argentina
+    from locations.transformers.argentina.country_main import create_tables as ar_transform
+
 except ImportError:
+    #uruguay
     spec = importlib.util.spec_from_file_location(
         "transformer", f"transformers/uruguay/country_main.py"
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     uy_transform = module.create_tables
+    #argentina
+    spec = importlib.util.spec_from_file_location(
+        "transformer", f"transformers/argentina/country_main.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    ar_transform = module.create_tables
 
 def parse_ts(stamp):
     return dt.strptime(stamp, '%Y-%m-%dT%H_%M_%S')
 
 matcher = {
     'Uruguay':uy_transform,
+    'Argentina':ar_transform
 }
 
 def parse(country:str) -> None:
@@ -42,10 +54,7 @@ def parse(country:str) -> None:
     with open(f'../../buckets/source_locations_raw/{country}/{json_}') as f:
         data = json.load(f)
     transform = matcher[country.capitalize()]
-    frames_dict = transform(
-        pd.DataFrame.from_records(data.get('divisions')),
-        pd.DataFrame.from_records(data.get('municipalities'))
-    )
+    frames_dict = transform(data)
     os.makedirs(f'../../buckets/source_locations_parsed/{country}', exist_ok=True)
     for k, v in frames_dict.items():
         v.to_csv(f'../../buckets/source_locations_parsed/{country}/{k}.csv', index=False)
