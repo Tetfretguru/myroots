@@ -17,7 +17,6 @@ from helper import (
     PROVINCES_COLS,
     MUNICIPALITIES_COLS,
     generate_id_str,
-    generate_id_series,
     create_municipality_code
 )
 
@@ -33,30 +32,12 @@ UY_DATA = {
 }
 
 
-# def generate_id(row, col):
-#     s = str(row[col]).lower().strip()
-#     return int(hashlib.sha1(s.encode("utf-8")).hexdigest(), 16) % (10 ** 8)
-
-
-# def generate_country_id(c: str="uruguay"):
-#     return int(hashlib.sha1(c.encode("utf-8")).hexdigest(), 16) % (10 ** 8)
-
-
 def tokenize(row, pairs):
     for p in pairs:
         token = tsr(row["department"], p)
         if token > 85:
             return p
     return pd.NA
-
-
-# def create_municipality_code(row: pd.Series) -> str:
-#     province_code = (
-#         re.sub(VOWEL_RGX, "", row["province"])
-#         .upper()[:4]
-#         .replace("Í", "I")
-#     )
-#     return f'{row["country_code"]}_{province_code}_{row["municipality_code"]:02}'
 
 
 def _sanitize_municipality_area(df: pd.DataFrame) -> None:
@@ -192,8 +173,14 @@ def create_tables(
     _sanitize_municipality_inhabitants(df)
 
     df["country_id"] = generate_id_str('uruguay')
-    df["province_id"] = df.apply(lambda row: generate_id_series(row, "province"), axis=1)
-    df["municipality_id"] = df.apply(lambda row: generate_id_series(row, "municipality"), axis=1)
+    df["province_id"] = df.apply(lambda row: generate_id_str(f'{row["country"]}_{row["province"]}'), axis=1)
+    df["municipality_id"] = df.apply(
+        lambda row: generate_id_str(f'{row["country"]}_{row["province"]}_{row["municipality"]}'), 
+        axis=1
+    )
+    df.loc[df["municipality_id"].duplicated(), "municipality_id"] = (
+        df["municipality_id"] + df.groupby("municipality_id").cumcount()
+    )
 
     return transform_location(df)
 
