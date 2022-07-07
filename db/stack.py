@@ -56,7 +56,8 @@ class MyRoots:
             print("Could not set connection")
             raise e
     
-    def execute_query(self, conn, query):
+    @staticmethod
+    def execute_query(conn, query):
         """ create a table from the query statement
         :param conn: Connection object
         :param query: a SQL query statement
@@ -82,7 +83,7 @@ if __name__ == "__main__":
             country_ = pd.read_csv(f"../buckets/source_locations_parsed/{country}/country.csv")
             province = pd.read_csv(f"../buckets/source_locations_parsed/{country}/province.csv")
             municipality = pd.read_csv(f"../buckets/source_locations_parsed/{country}/municipality.csv")
-        except FileNotFoundError as e:
+        except FileNotFoundError as ignore:
             raise StackFirstLoadException(
                 f"You are trying to deploy db stack with country={repr(country)},"+ \
                 "which looks we there is no data yet to load"
