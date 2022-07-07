@@ -51,6 +51,7 @@ while [ $# -gt 0 ]; do
                 --extract_transform_all: Same as before but will also transform coordinates if available.
                 --transform_location: Only parses the desired location, country promp will show for the user
                 --load_location: loads data from buckets CSV resulting from transform step, country promp will show for the user
+                --etl_location: RUN ETL FOR LOCATIONS, country promp will show for the user
                 --help|-help|-h|help: Displays this message
             """
             exit
