@@ -134,3 +134,4 @@ dmypy.json
 *.sql
 *.csv
 *.json
+buckets/*

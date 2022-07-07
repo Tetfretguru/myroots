@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS provinces (
 	province_code TEXT NOT NULL,
 	province_population INTEGER,
 	province_area INTEGER,
-	province_country_id INTEGER NOT NULL
+	country_id INTEGER NOT NULL
 );
 """
 
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS subdivisions (
 	municipality_creation_date DATE,
 	municipality_population INTEGER,
 	municipality_area INTEGER,
+	province_id INTEGER,
 	country_id INTEGER NOT NULL
 );
 """
